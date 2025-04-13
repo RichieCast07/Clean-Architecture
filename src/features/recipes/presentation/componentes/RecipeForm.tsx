@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { RecipeViewModel } from "../../presentation/viewmodels/RecipeViewModel";
+import { RecipeViewModel } from "../viewmodels/RecipeViewModel";
 import { Recipe } from "../../data/models/Recipe";
 
 interface RecipeFormProps {
@@ -15,17 +15,16 @@ const RecipeForm = ({ recipeId, viewModel, onSaved }: RecipeFormProps) => {
 
   useEffect(() => {
     if (recipeId) {
-      const loadRecipe = async () => {
-        const recipe = await viewModel.getRecipeById(recipeId);
-        if (recipe) {
-          setTitle(recipe.title);
-          setIngredients(recipe.ingredients);
-          setDescription(recipe.description);
-        } else {
-          console.warn("Receta no encontrada");
-        }
-      };
-      loadRecipe();
+      const recipes = viewModel.getLocalRecipes();
+      const recipe = recipes.find(r => r.recipe_id === recipeId);
+      
+      if (recipe) {
+        setTitle(recipe.title || "");
+        setIngredients(recipe.ingredients || "");
+        setDescription(recipe.description || "");
+      } else {
+        console.warn("Receta no encontrada en el estado local");
+      }
     }
   }, [recipeId, viewModel]);
 
@@ -41,9 +40,13 @@ const RecipeForm = ({ recipeId, viewModel, onSaved }: RecipeFormProps) => {
 
     try {
       if (recipeId) {
-        await viewModel.updateRecipe(recipeId, newRecipe);
+        await viewModel.handleEditRecipe(recipeId, newRecipe);
       } else {
-        await viewModel.createRecipe(newRecipe);
+        viewModel.setTitle(title);
+        viewModel.setIngredients(ingredients);
+        viewModel.setDescription(description);
+        
+        await viewModel.handleCreateRecipe();
       }
       onSaved(); 
     } catch (error) {
